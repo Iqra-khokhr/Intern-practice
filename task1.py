@@ -1,92 +1,35 @@
-# task1.py
-# Student Management System with File Storage
+import pandas as pd
 
-# Function to calculate grade based on average marks
-def calculate_grade(avg):
-    if avg >= 90:
-        return "A"
-    elif avg >= 80:
-        return "B"
-    elif avg >= 70:
-        return "C"
-    elif avg >= 60:
-        return "D"
+# Step 1: Load student results from CSV
+df = pd.read_csv('results.csv')
+
+# Step 2: Calculate total marks, percentage, grade
+df['Total'] = df.groupby('roll no')['marks'].transform('sum')
+df['Percentage'] = df['Total'] / (df.groupby('roll no')['marks'].count() * 100) * 100
+
+def get_grade(percentage):
+    if percentage >= 90:
+        return 'A+'
+    elif percentage >= 80:
+        return 'A'
+    elif percentage >= 70:
+        return 'B'
+    elif percentage >= 60:
+        return 'C'
+    elif percentage >= 50:
+        return 'D'
     else:
-        return "Fail"
+        return 'F'
 
-# Function to add a new student
-def add_student():
-    name = input("Enter Student Name: ")
-    roll_no = input("Enter Roll No: ")
-    marks1 = int(input("Enter marks of Subject 1: "))
-    marks2 = int(input("Enter marks of Subject 2: "))
-    marks3 = int(input("Enter marks of Subject 3: "))
+df['Grade'] = df['Percentage'].apply(get_grade)
 
-    avg = (marks1 + marks2 + marks3) / 3
-    grade = calculate_grade(avg)
+# Step 3: Drop duplicate rows for each student (keep one row per student)
+final_df = df.drop_duplicates(subset=['roll no'])
 
-    student = {
-        "Name": name,
-        "RollNo": roll_no,
-        "Marks": [marks1, marks2, marks3],
-        "Average": avg,
-        "Grade": grade
-    }
+# Step 4: Sort by percentage and display top 5 students
+top5 = final_df.sort_values(by='Percentage', ascending=False).head(5)
+print("Top 5 Students by Percentage:")
+print(top5[['name', 'roll no', 'Total', 'Percentage', 'Grade']])
 
-    # Save student record into a file
-    with open("students.txt", "a") as f:
-        f.write(str(student) + "\n")
-
-    print(" Student added successfully!\n")
-
-# Function to view all students
-def view_students():
-    try:
-        with open("students.txt", "r") as f:
-            lines = f.readlines()
-            for line in lines:
-                student = eval(line.strip())  # Convert string back to dictionary
-                print(student)
-    except FileNotFoundError:
-        print(" No records found. Please add students first.\n")
-
-# Function to search student by Roll No
-def search_student():
-    roll_no = input("Enter Roll No to search: ")
-    found = False
-
-    try:
-        with open("students.txt", "r") as f:
-            lines = f.readlines()
-            for line in lines:
-                student = eval(line.strip())
-                if student["RollNo"] == roll_no:
-                    print(" Student Found:", student)
-                    found = True
-                    break
-        if not found:
-            print(" Student not found.\n")
-    except FileNotFoundError:
-        print(" No records found.\n")
-
-# Main Menu
-while True:
-    print("\n--- Student Management System ---")
-    print("1. Add Student")
-    print("2. View All Students")
-    print("3. Search Student by Roll No")
-    print("4. Exit")
-
-    choice = input("Enter your choice: ")
-
-    if choice == "1":
-        add_student()
-    elif choice == "2":
-        view_students()
-    elif choice == "3":
-        search_student()
-    elif choice == "4":
-        print(" Exiting... Goodbye!")
-        break
-    else:
-        print(" Invalid choice. Try again.\n")
+# Step 5: Save analyzed results into a new CSV file
+final_df.to_csv('final_results.csv', index=False)
